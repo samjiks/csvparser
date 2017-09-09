@@ -12,9 +12,7 @@ class NotValidDayError(Exception):
 def get_csv_files(directory=None):
     return glob.iglob((directory or DEFAULT_DATA_DIR) + '/*.csv')
 
-class Parser(object):
-
-    DAYS_OF_WEEK = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+class CSVParser(object):
 
     def __init__(self, filename, mode='rt'):
         self.filename = filename
@@ -43,6 +41,20 @@ class Parser(object):
         except Exception as e:
             print(e)
 
+    def parse_filename(self):
+        if self.filename.index('/') != -1:
+            return self.filename.rsplit('/')[-1]
+        else:
+            return self.filename
+
+
+class WeedDayParser(CSVParser):
+
+    DAYS_OF_WEEK = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+
+    def __init__(self, filename, mode='rt'):
+        super().__init__(filename, mode)
+
     @staticmethod
     def square(value):
         if value:
@@ -62,13 +74,13 @@ class Parser(object):
 
     def _get_field_value(self, day, value):
         try:
-            cal = self.get_cal_type(day)
+            cal = self.get_mode(day)
         except NotValidDayError:
             pass
         else:
             return self._build_fields(day=day, value=value, cal=cal)
 
-    def get_cal_type(self, day):
+    def get_mode(self, day):
         if day in ['mon', 'tue', 'wed']:
             return self.square
         elif day in ['thu', 'fri']:
@@ -91,6 +103,7 @@ class Parser(object):
 
     def parse(self):
         for rows, file in self.get_rows():
+            print(self.parse_filename())
             for field, value in rows.items():
                 if self.character_between_day(field):
                     split_fields = self.split_day(field)
@@ -98,11 +111,13 @@ class Parser(object):
                         print(self._get_field_value(field, value))
                 elif field in self.DAYS_OF_WEEK:
                         print(self._get_field_value(field, value))
-            print(file)
+                elif field == 'description':
+                        print(value)
+
 
 if __name__ == '__main__':
     for f in get_csv_files():
-        with Parser(f) as p:
+        with WeedDayParser(f) as p:
             p.parse()
 
 
