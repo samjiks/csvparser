@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import csv
 
@@ -66,7 +67,7 @@ class WeedDayParser(CSVParser):
             return int(value) * 2
 
     @staticmethod
-    def character_between_day(field, delimiter='-'):
+    def _has_bar_between_days(field, delimiter='-'):
         return delimiter in field
 
     def split_day(self, field, delimiter='-'):
@@ -101,19 +102,41 @@ class WeedDayParser(CSVParser):
 
         return build
 
-    def parse(self):
-        for rows, file in self.get_rows():
-            print(self.parse_filename())
-            for field, value in rows.items():
-                if self.character_between_day(field):
-                    split_fields = self.split_day(field)
-                    for field in split_fields:
-                        print(self._get_field_value(field, value))
-                elif field in self.DAYS_OF_WEEK:
-                        print(self._get_field_value(field, value))
-                elif field == 'description':
-                        print(value)
+    def iter_through_days(self, fields):
+        between_days = []
+        for field in fields:
+            try:
+                index = self.DAYS_OF_WEEK.index(field)
+            except IndexError:
+                    print('No such field %s', field)
+            else:
+                between_days.append(index)
+        if len(between_days) != 2:
+            print('Not have enough days to process')
+        else:
+            return between_days
 
+    def _get_field_value_between_days(self, day_index, value):
+        try:
+            for index in range(day_index[0], day_index[1]+1):
+                print(self._get_field_value(self.DAYS_OF_WEEK[index], value))
+        except ValueError as e:
+            print(e)
+
+    def parse(self):
+        for  rows, file in self.get_rows():
+
+            sys.stdout.write(self.parse_filename())
+            for field, value in rows.items():
+                if self._has_bar_between_days(field):
+                    split_fields = self.split_day(field)
+                    between_days = self.iter_through_days(split_fields)
+                    self._get_field_value_between_days(between_days, value)
+                elif field in self.DAYS_OF_WEEK:
+                    print(self._get_field_value(field, value))
+                else:
+                    pass
+                    # TODO: Need to work with Description flattening
 
 if __name__ == '__main__':
     for f in get_csv_files():
