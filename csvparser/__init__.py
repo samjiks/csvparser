@@ -28,14 +28,15 @@ class CSVParser(object):
         try:
             if self.is_csv_file(self.get_current_file):
                 self.open_file = open(self.get_current_file, self.mode)
-        except NotValidCSVFileError:
-            print('Not Valid CSV File')
-        except FileNotFoundError:
-            print("file not found")
+        except NotValidCSVFileError as e:
+            print(e)
+        except FileNotFoundError as e:
+            print("file not found %s" % e)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.open_file.close()
+        if hasattr(self, 'open_file'):
+            self.open_file.close()
 
     @property
     def get_current_file(self):
@@ -46,7 +47,7 @@ class CSVParser(object):
         if f.endswith('csv'):
             return True
         else:
-            raise NotValidCSVFileError
+            raise NotValidCSVFileError('Not Valid CSV File %s' % f)
 
     def get_field_names(self):
         reader = csv.DictReader(self.open_file)
@@ -58,7 +59,7 @@ class CSVParser(object):
             reader = csv.DictReader(self.open_file)
         except FileNotFoundError as e:
             print(e)
-        except Exception as e:
+        except AttributeError as e:
             print(e)
         else:
             for row in reader:

@@ -1,7 +1,6 @@
 import unittest
-from mock import mock_open, patch
 
-from csvparser import CSVParser
+from csvparser import CSVParser, NotValidCSVFileError
 
 class TestCSVParser(unittest.TestCase):
 
@@ -10,9 +9,20 @@ class TestCSVParser(unittest.TestCase):
         assert csvp.filename == '1.txt'
         assert  csvp.mode == 'rt'
 
-    def test_file_open(self):
-        m = mock_open()
-        with patch('{}.open'.format(__name__), m, create=True):
-            with CSVParser('foo', 'rt') as h:
-                h.get_rows()
-        m.assert_called_once_with('foo', 'w')
+    def test_file_invalid_csv(self):
+        with CSVParser('a.txt'):
+            self.assertRaises(NotValidCSVFileError)
+
+    def test_file_exists(self):
+        with CSVParser('csv'):
+            self.assertRaises(FileNotFoundError)
+
+    def test_field_names(self):
+        with CSVParser('csv_files/1.csv', 'rt') as cp:
+            expected = ['mon', 'tue', 'some_column1', 'wed', 'thu', 'fri', 'description']
+            cp.get_field_names() == expected
+
+    def test_current_file_func(self):
+        with CSVParser('csv_files/1.csv', 'rt') as cp:
+            assert cp.get_current_file == 'csv_files/1.csv'
+
