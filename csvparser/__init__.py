@@ -3,15 +3,20 @@ import sys
 import glob
 import csv
 
-DEFAULT_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'csv_files')
+DEFAULT_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'csv_files')
 
 
 class NotValidDayError(Exception):
     pass
 
 
+class NotValidCSVFileError(Exception):
+    pass
+
+
 def get_csv_files(directory=None):
     return glob.iglob((directory or DEFAULT_DATA_DIR) + '/*.csv')
+
 
 class CSVParser(object):
 
@@ -21,13 +26,27 @@ class CSVParser(object):
 
     def __enter__(self):
         try:
-            self.open_file = open(self.filename, self.mode)
+            if self.is_csv_file(self.get_current_file):
+                self.open_file = open(self.get_current_file, self.mode)
+        except NotValidCSVFileError:
+            print('Not Valid CSV File')
         except FileNotFoundError:
             print("file not found")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.open_file.close()
+
+    @property
+    def get_current_file(self):
+        return self.filename
+
+    @staticmethod
+    def is_csv_file(f):
+        if f.endswith('csv'):
+            return True
+        else:
+            raise NotValidCSVFileError
 
     def get_field_names(self):
         reader = csv.DictReader(self.open_file)
@@ -37,10 +56,13 @@ class CSVParser(object):
     def get_rows(self):
         try:
             reader = csv.DictReader(self.open_file)
-            for row in reader:
-                yield row, self.open_file
+        except FileNotFoundError as e:
+            print(e)
         except Exception as e:
             print(e)
+        else:
+            for row in reader:
+                yield row
 
     def parse_filename(self):
         if self.filename.index('/') != -1:
@@ -77,7 +99,7 @@ class WeedDayParser(CSVParser):
         try:
             cal = self.get_mode(day)
         except NotValidDayError:
-            pass
+            print('Cell does not contain a Day')
         else:
             return self._build_fields(day=day, value=value, cal=cal)
 
@@ -124,9 +146,8 @@ class WeedDayParser(CSVParser):
             print(e)
 
     def parse(self):
-        for  rows, file in self.get_rows():
-
-            sys.stdout.write(self.parse_filename())
+        for rows in self.get_rows():
+            sys.stdout.write(self.parse_filename() + '\n')
             for field, value in rows.items():
                 if self._has_bar_between_days(field):
                     split_fields = self.split_day(field)
@@ -137,10 +158,5 @@ class WeedDayParser(CSVParser):
                 else:
                     pass
                     # TODO: Need to work with Description flattening
-
-if __name__ == '__main__':
-    for f in get_csv_files():
-        with WeedDayParser(f) as p:
-            p.parse()
 
 
