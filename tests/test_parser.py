@@ -1,6 +1,6 @@
 import unittest
 
-from csvparser import CSVParser, NotValidCSVFileError
+from csvparser import CSVParser, WeedDayParser, NotValidCSVFileError
 
 class TestCSVParser(unittest.TestCase):
 
@@ -25,4 +25,20 @@ class TestCSVParser(unittest.TestCase):
     def test_current_file_func(self):
         with CSVParser('csv_files/1.csv', 'rt') as cp:
             assert cp.get_current_file == 'csv_files/1.csv'
+
+    def test_is_csv_file_func(self):
+            f = 'csv_files/1.csv'
+            with CSVParser(f, 'rt') as cp:
+                assert cp.is_csv_file(f) == True
+
+            f = 'csv_files/5.csv'
+            with CSVParser(f, 'rt'):
+                self.assertRaises(NotValidCSVFileError)
+
+
+class TestWeekDayCSVParser(unittest.TestCase):
+
+    def test_parent_class(self):
+        wdp = WeedDayParser('1.txt')
+        assert wdp.__class__.__bases__[0] == CSVParser
 
